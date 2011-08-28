@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="ChatProject" basedir="." default="default">
+
+	<property name="user.name" value="mweppler@gmail.com" />
+	<property name="client.build" location="clientbuild" />
+	<property name="client.src" value="src/info/mattweppler/chatclient" />
+	<property name="server.build" location="serverbuild" />
+	<property name="server.src" value="src/info/mattweppler/chatserver" />
+
+	<property name="client.code.classes" location="${client.build}/classes" />
+    <property name="server.code.classes" location="${server.build}/classes" />
+	<property name="client.code.sources" location="${client.src}" />
+	<property name="server.code.sources" location="${server.src}" />
+	
+	<dirset id="srcdir" dir="." includes="src" />
+	<path id="client.lib.path"><pathelement path="${client.code.classes}" /></path>
+	<path id="server.lib.path"><pathelement path="${server.code.classes}" /></path>
+
+    <target name="buildclient" depends="client.compile,client.jar" />  
+    <target name="buildserver" depends="server.compile,server.jar" />
+
+    <target name="client.compile">
+		<mkdir dir="${client.code.classes}" />
+		<javac srcdir="${client.code.sources}" destdir="${client.code.classes}" classpathref="client.lib.path" target="1.5" encoding="utf-8" includeantruntime="false" />
+	</target>
+
+	<target name="client.jar" depends="client.compile">
+        <delete file="ChatCLient.jar"/>
+        <delete file="MANIFEST.MF"/>
+        <manifest file="MANIFEST.MF">
+            <attribute name="Built-By" value="${user.name}"/>
+            <attribute name="Main-Class" value="info.mattweppler.chatclient.ChatClient"/>
+        </manifest>
+        <jar destfile="ChatClient.jar"
+            basedir="${client.code.classes}"
+            includes="**/*.class"
+            manifest="MANIFEST.MF"
+            />
+    </target>
+
+	<target name="server.compile">
+		<mkdir dir="${server.code.classes}" />
+		<javac srcdir="${server.code.sources}" destdir="${server.code.classes}" classpathref="server.lib.path" target="1.5" encoding="utf-8" includeantruntime="false" />
+	</target>
+
+	<target name="server.jar" depends="server.compile">
+        <delete file="ChatServer.jar"/>
+        <delete file="MANIFEST.MF"/>
+        <manifest file="MANIFEST.MF">
+            <attribute name="Built-By" value="${user.name}"/>
+            <attribute name="Main-Class" value="info.mattweppler.chatserver.ChatServer"/>
+        </manifest>
+        <jar destfile="ChatServer.jar"
+            basedir="${server.code.classes}"
+            includes="**/*.class"
+            manifest="MANIFEST.MF"
+            />
+    </target>
+
+</project>
