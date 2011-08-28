@@ -6,8 +6,8 @@ import java.awt.*;
 
 public class ChatClient extends Frame implements Runnable
 {
-	private static final long serialVersionUID = 34602517901632082L;
-	protected DataInputStream dataInputStream;
+    private static final long serialVersionUID = 34602517901632082L;
+    protected DataInputStream dataInputStream;
     protected DataOutputStream dataOutputStream;
     protected TextArea outputTextArea;
     protected TextField inputTextField;
