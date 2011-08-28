@@ -9,7 +9,8 @@ public class ChatHandler extends Thread
     protected Socket socket;
     protected DataInputStream dataInputStream;
     protected DataOutputStream dataOutputStream;
-    protected static Vector handlers = new Vector();
+    protected static Vector<ChatHandler> handlers = new Vector<ChatHandler>();
+    protected boolean stillAlive;
     
     public ChatHandler(Socket socket) throws IOException
     {
@@ -22,7 +23,7 @@ public class ChatHandler extends Thread
     {
         try {
             handlers.addElement(this);
-            while (true) {
+            while (this.stillAlive) {
                 String message = dataInputStream.readUTF();
                 broadcast(message);
             }
@@ -42,7 +43,7 @@ public class ChatHandler extends Thread
     {
         synchronized(handlers)
         {
-            Enumeration enumeration = handlers.elements();
+            Enumeration<ChatHandler> enumeration = handlers.elements();
             while (enumeration.hasMoreElements()) {
                 ChatHandler chatHandler = (ChatHandler) enumeration.nextElement();
                 try {
@@ -52,7 +53,7 @@ public class ChatHandler extends Thread
                     }
                     chatHandler.dataOutputStream.flush();
                 } catch (IOException ioe) {
-                    chatHandler.stop();
+                    chatHandler.stillAlive = false;
                 }
             }
         }

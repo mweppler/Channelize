@@ -6,11 +6,13 @@ import java.awt.*;
 
 public class ChatClient extends Frame implements Runnable
 {
-    protected DataInputStream dataInputStream;
+	private static final long serialVersionUID = 34602517901632082L;
+	protected DataInputStream dataInputStream;
     protected DataOutputStream dataOutputStream;
     protected TextArea outputTextArea;
     protected TextField inputTextField;
     protected Thread listenerThread;
+    protected boolean stillAlive;
     
     public ChatClient(String title, InputStream inStream, OutputStream outStream)
     {
@@ -22,7 +24,8 @@ public class ChatClient extends Frame implements Runnable
         outputTextArea.setEditable(false);
         add("South", inputTextField = new TextField());
         pack();
-        show();
+        //show();
+        this.setVisible(true);
         inputTextField.requestFocus();
         listenerThread = new Thread(this);
         listenerThread.start();
@@ -31,15 +34,15 @@ public class ChatClient extends Frame implements Runnable
     public void run()
     {
         try {
-            while (true) {
+            while (this.stillAlive) {
                 String line = dataInputStream.readUTF();
-                outputTextArea.appendText(line + "\n");
+                outputTextArea.append(line + "\n");
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
         } finally {
             listenerThread = null;
-            inputTextField.hide();
+            inputTextField.setVisible(false);
             validate();
             try {
                 dataOutputStream.close();
@@ -57,15 +60,15 @@ public class ChatClient extends Frame implements Runnable
                 dataOutputStream.flush();
             } catch (IOException ioe) {
                 ioe.printStackTrace();
-                listenerThread.stop();
+                this.stillAlive = false;
             }
             inputTextField.setText("");
             return true;
         } else if ((e.target == this) && (e.id == Event.WINDOW_DESTROY)) {
             if (listenerThread != null) {
-                listenerThread.stop();
+                this.stillAlive = false;
             }
-            hide();
+            this.setVisible(false);
             return true;
         }
         return super.handleEvent(e);
