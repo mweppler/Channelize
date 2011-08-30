@@ -1,8 +1,14 @@
 package info.mattweppler.chatserver;
 
-import java.net.*;
-import java.io.*;
-import java.util.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.net.Socket;
+import java.util.Enumeration;
+import java.util.Vector;
 
 public class ChatHandler extends Thread
 {
@@ -27,6 +33,8 @@ public class ChatHandler extends Thread
                 String message = dataInputStream.readUTF();
                 broadcast(message);
             }
+        } catch (EOFException eofe) {
+        	eofe.printStackTrace();
         } catch (IOException ioe) {
             ioe.printStackTrace();
         } finally {
@@ -41,18 +49,17 @@ public class ChatHandler extends Thread
     
     protected static void broadcast(String message)
     {
-        synchronized(handlers)
-        {
+        synchronized (handlers) {
             Enumeration<ChatHandler> enumeration = handlers.elements();
             while (enumeration.hasMoreElements()) {
                 ChatHandler chatHandler = (ChatHandler) enumeration.nextElement();
                 try {
-                    synchronized(chatHandler.dataOutputStream)
-                    {
+                    synchronized (chatHandler.dataOutputStream) {
                         chatHandler.dataOutputStream.writeUTF(message);
                     }
                     chatHandler.dataOutputStream.flush();
                 } catch (IOException ioe) {
+                	ioe.printStackTrace();
                     chatHandler.stillAlive = false;
                 }
             }
