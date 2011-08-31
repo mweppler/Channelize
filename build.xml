@@ -1,9 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Channelize" basedir="." default="default">
 
-    <property name="user.name" value="mweppler@gmail.com" />
+    <property name="user.name" value="username" />
     <dirset id="srcdir" dir="." includes="src" />
 
+	
+	<!-- Shared Classes -->
+    <property name="shared.build" location="sharedbuild" />
+    <property name="shared.src" value="src/info/mattweppler/sharedcomponents" />
+    <property name="shared.code.classes" location="${shared.build}/classes" />
+    <property name="shared.code.sources" location="${shared.src}" />
+	
+    <target name="shared.cleanup">
+        <delete dir="${shared.code.classes}" />
+        <delete dir="${shared.build}" />
+    </target>
+    
+	<target name="shared.compile">
+        <mkdir dir="${shared.code.classes}" />
+        <javac srcdir="${shared.code.sources}" destdir="${shared.code.classes}" target="1.6" encoding="utf-8" includeantruntime="false" />
+    </target>
+	
     <!-- Client Build -->
     <property name="client.build" location="clientbuild" />
     <property name="client.src" value="src/info/mattweppler/chatclient" />
@@ -12,7 +29,7 @@
     
     <path id="client.lib.path"><pathelement path="${client.code.classes}" /></path>
     
-    <target name="buildclient" depends="client.compile,client.jar,client.cleanup" />  
+    <target name="buildclient" depends="shared.compile,client.compile,client.jar,shared.cleanup,client.cleanup" />  
     
     <target name="client.cleanup">
         <delete dir="${client.code.classes}" />
@@ -23,8 +40,10 @@
     </target>
     
     <target name="client.compile">
-        <mkdir dir="${client.code.classes}" />
-        <javac srcdir="${client.code.sources}" destdir="${client.code.classes}" classpathref="client.lib.path" target="1.5" encoding="utf-8" includeantruntime="false" />
+    	<mkdir dir="${shared.code.classes}" />
+    	<javac srcdir="${shared.code.sources}" destdir="${shared.code.classes}" target="1.6" encoding="utf-8" includeantruntime="false" />
+    	<mkdir dir="${client.code.classes}" />
+        <javac srcdir="${client.code.sources}" destdir="${client.code.classes}" classpathref="client.lib.path" target="1.6" encoding="utf-8" includeantruntime="false" />
     </target>
 
     <target name="client.jar" depends="client.compile">
@@ -49,7 +68,7 @@
     
     <path id="server.lib.path"><pathelement path="${server.code.classes}" /></path>
     
-    <target name="buildserver" depends="server.compile,server.jar,server.cleanup" />
+    <target name="buildserver" depends="shared.compile,server.compile,server.jar,shared.cleanup,server.cleanup" />
     
     <target name="server.cleanup">
         <delete dir="${server.code.classes}" />
@@ -61,7 +80,7 @@
     
     <target name="server.compile">
         <mkdir dir="${server.code.classes}" />
-        <javac srcdir="${server.code.sources}" destdir="${server.code.classes}" classpathref="server.lib.path" target="1.5" encoding="utf-8" includeantruntime="false" />
+        <javac srcdir="${server.code.sources}" destdir="${server.code.classes}" classpathref="server.lib.path" target="1.6" encoding="utf-8" includeantruntime="false" />
     </target>
 
     <target name="server.jar" depends="server.compile">

@@ -12,7 +12,6 @@ public class ChatServer
         System.out.println("Listening on port:"+port+" for incoming connections.");
         while (true) { // when should this be ended?
             Socket clientSocket = serverSocket.accept();
-            System.out.println("Connection from: " + clientSocket.getInetAddress());
             ChatHandler chatHandler = new ChatHandler(clientSocket);
             chatHandler.stillAlive = true;
             chatHandler.start();
@@ -21,11 +20,8 @@ public class ChatServer
     
     public static void main(String[] args) throws IOException
     {
-//    	new ChatServer(1137);
-    	
-    	if (args.length != 1) {
+    	if (args.length != 1)
             throw new RuntimeException("Syntax: ChatServer <port>");
-        }
-        new ChatServer(Integer.parseInt(args[0]));
+        new ChatServer(Integer.parseInt(args[0])); //new ChatServer(1137);
     }
 }
