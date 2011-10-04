@@ -20,8 +20,13 @@ public class ChatServer
     
     public static void main(String[] args) throws IOException
     {
-    	if (args.length != 1)
-            throw new RuntimeException("Syntax: ChatServer <port>");
-        new ChatServer(Integer.parseInt(args[0])); //new ChatServer(1137);
+    	int port = 1137;
+    	if (args.length != 1) {
+            System.out.println("Syntax: ChatServer <port>");
+            System.out.println("...using default port.");
+    	} else {
+    		port = Integer.parseInt(args[0]);
+    	}
+        new ChatServer(port);
     }
 }
