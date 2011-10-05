@@ -1,12 +1,15 @@
 package info.mattweppler.chatserver;
 
 import info.mattweppler.sharedcomponents.CryptoUtils;
+import info.mattweppler.sharedcomponents.Message;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.net.SocketException;
 import java.text.SimpleDateFormat;
@@ -20,6 +23,8 @@ public class ChatHandler extends Thread
 	protected Socket socket;
     protected DataInputStream dataInputStream;
     protected DataOutputStream dataOutputStream;
+    protected ObjectInputStream objectInputStream;
+    protected ObjectOutputStream objectOutputStream;
     protected static Vector<ChatHandler> handlers = new Vector<ChatHandler>();
     protected boolean stillAlive;
     
@@ -32,6 +37,8 @@ public class ChatHandler extends Thread
         System.out.println("Connection from: "+this.getName()+" at "+sdf.format(cal.getTime()));
         dataInputStream = new DataInputStream(new BufferedInputStream(this.socket.getInputStream()));
         dataOutputStream = new DataOutputStream(new BufferedOutputStream(this.socket.getOutputStream()));
+    	objectInputStream = new ObjectInputStream(this.socket.getInputStream());
+    	objectOutputStream = new ObjectOutputStream(this.socket.getOutputStream());
     }
     
     public void run()
@@ -39,7 +46,8 @@ public class ChatHandler extends Thread
         try {
             handlers.addElement(this);
             while (this.stillAlive) {
-                String message = dataInputStream.readUTF();
+                //String message = dataInputStream.readUTF();
+                Message message = (Message) objectInputStream.readObject();
                 broadcast(message);
             }
         } catch (SocketException se) {
@@ -50,6 +58,8 @@ public class ChatHandler extends Thread
         	}
         } catch (IOException ioe) {
             ioe.printStackTrace();
+        } catch (ClassNotFoundException cnfe) {
+        	cnfe.printStackTrace();
         } finally {
             handlers.removeElement(this);
             try {
@@ -84,6 +94,27 @@ public class ChatHandler extends Thread
         }
     }
     
-    
+    protected static void broadcast(Message message)
+    {
+        synchronized (handlers) {
+            Enumeration<ChatHandler> enumeration = handlers.elements();
+            while (enumeration.hasMoreElements()) {
+                ChatHandler chatHandler = (ChatHandler) enumeration.nextElement();
+                try {
+                    synchronized (chatHandler.objectOutputStream) {
+                    	Calendar cal = Calendar.getInstance();
+                    	SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT_NOW);
+                    	message.setTimestamp(sdf.format(cal.getTime()));
+                    	System.out.println("Encrypted Message at server: "+message.toString());
+                    	chatHandler.objectOutputStream.writeObject(message);
+                    }
+                    chatHandler.objectOutputStream.flush();
+                } catch (IOException ioe) {
+                	ioe.printStackTrace();
+                    chatHandler.stillAlive = false;
+                }
+            }
+        }
+    }
     
 }

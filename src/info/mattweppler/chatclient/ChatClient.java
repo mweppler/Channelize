@@ -1,6 +1,7 @@
 package info.mattweppler.chatclient;
 
 import info.mattweppler.sharedcomponents.CryptoUtils;
+import info.mattweppler.sharedcomponents.Message;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -15,6 +16,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.UTFDataFormatException;
 import java.net.Socket;
@@ -29,6 +32,8 @@ public class ChatClient implements KeyListener, WindowListener
     protected String username;
     protected DataInputStream dataInputStream;
     protected DataOutputStream dataOutputStream;
+    protected ObjectInputStream objectInputStream;
+    protected ObjectOutputStream objectOutputStream;
     protected ClientListener listener;
     protected boolean stillAlive;
     protected JTextArea outputTextArea;
@@ -39,7 +44,12 @@ public class ChatClient implements KeyListener, WindowListener
         this.username = username; //"-test";
         dataInputStream = new DataInputStream(new BufferedInputStream(inStream));
         dataOutputStream = new DataOutputStream(new BufferedOutputStream(outStream));
-
+        try {
+        	objectOutputStream = new ObjectOutputStream(outStream);
+        	objectInputStream = new ObjectInputStream(inStream);
+        } catch (IOException ioe) {
+        	ioe.printStackTrace();
+        }
         //TODO - Take the time to do a better user interface.
         frame = new JFrame(title);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -70,6 +80,41 @@ public class ChatClient implements KeyListener, WindowListener
         System.out.println("Created Thread:"+listener);
     }
     
+    public void clearInputArea() {
+    	inputTextArea.setText(null);
+        // remove the newline from the input field.
+        inputTextArea.getDocument().putProperty("filterNewlines", Boolean.TRUE);
+        // output textarea follows the content instead of just staying at the current line.
+        outputTextArea.setCaretPosition(outputTextArea.getText().length());
+    }
+    
+    public void sendMessage() {
+    	try {
+            dataOutputStream.writeUTF(CryptoUtils.messageCryptography(username+": "+(String)inputTextArea.getText(), "ENCRYPT"));
+            dataOutputStream.flush();
+        } catch (UTFDataFormatException utfdfe) {
+        	utfdfe.getMessage();
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            this.stillAlive = false;
+        } finally {
+        	clearInputArea();
+        }
+    }
+    
+    public void sendMessageObject() {
+        Message messageObject = new Message();
+        messageObject.setMessage(username+": "+(String)inputTextArea.getText());
+        try {
+			objectOutputStream.writeObject(messageObject);
+			objectOutputStream.flush();
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		} finally {
+        	clearInputArea();
+        }
+    }
+    
 	@Override
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isAltDown()) {
@@ -78,20 +123,8 @@ public class ChatClient implements KeyListener, WindowListener
 			return;
 		}
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            try {
-                dataOutputStream.writeUTF(CryptoUtils.messageCryptography(username+": "+(String)inputTextArea.getText(), "ENCRYPT"));
-                dataOutputStream.flush();
-            } catch (UTFDataFormatException utfdfe) {
-            	utfdfe.getMessage();
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-                this.stillAlive = false;
-            }
-            inputTextArea.setText(null);
-            // remove the newline from the input field.
-            inputTextArea.getDocument().putProperty("filterNewlines", Boolean.TRUE);
-            // output textarea follows the content instead of just staying at the current line.
-            outputTextArea.setCaretPosition(outputTextArea.getText().length());
+        	//sendMessage();
+        	sendMessageObject();
         }
 	}
 
@@ -130,12 +163,17 @@ public class ChatClient implements KeyListener, WindowListener
 
     public static void main(String[] args) throws IOException
     {
-      //Socket socket = new Socket("localhost", 1137);
-      //new ChatClient("Chat localhost:1137", "username", socket.getInputStream(), socket.getOutputStream());
-      if (args.length != 3)
-          throw new RuntimeException("Syntax: ChatClient <host> <port> <username>");
-      Socket socket = new Socket(args[0], Integer.parseInt(args[1]));
-      new ChatClient("Chat " + args[0] + ":" + args[1], args[2], socket.getInputStream(), socket.getOutputStream());
+    	if (args.length == 0) {
+    		System.out.println("Syntax: ChatClient <host> <port> <username>");
+    		System.out.println("...using default localhost 1137 anonymous");
+    		Socket socket = new Socket("localhost", 1137);
+    	    new ChatClient("Chat localhost:1137", "username", socket.getInputStream(), socket.getOutputStream());
+    	} else if (args.length != 3) {
+		    throw new RuntimeException("Syntax: ChatClient <host> <port> <username>");
+    	} else {
+		    Socket socket = new Socket(args[0], Integer.parseInt(args[1]));
+		    new ChatClient("Chat " + args[0] + ":" + args[1], args[2], socket.getInputStream(), socket.getOutputStream());
+    	}
     }
     
 }
