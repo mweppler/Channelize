@@ -7,6 +7,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -56,6 +57,8 @@ public class ChatHandler extends Thread
         		Calendar cal = Calendar.getInstance();
         		System.out.println(this.getName()+" has disconnected at "+sdf.format(cal.getTime()));
         	}
+        } catch (EOFException eofe) {
+        	System.out.println(this.toString()+" ended.");
         } catch (IOException ioe) {
             ioe.printStackTrace();
         } catch (ClassNotFoundException cnfe) {
@@ -66,6 +69,53 @@ public class ChatHandler extends Thread
                 socket.close();
             } catch (IOException ioe) {
                 ioe.printStackTrace();
+            }
+        }
+    }
+
+    protected static void handleMessage(Message message)
+    {
+        synchronized (handlers) {
+            Enumeration<ChatHandler> enumeration = handlers.elements();
+            while (enumeration.hasMoreElements()) {
+                ChatHandler chatHandler = (ChatHandler) enumeration.nextElement();
+                try {
+                    synchronized (chatHandler.objectOutputStream) {
+                    	Calendar cal = Calendar.getInstance();
+                    	SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT_NOW);
+                    	message.setTimestamp(sdf.format(cal.getTime()));
+                    	System.out.println("Encrypted Message at server: "+message.toString());
+                    	chatHandler.objectOutputStream.writeObject(message);
+                    }
+                    chatHandler.objectOutputStream.flush();
+                } catch (IOException ioe) {
+                	ioe.printStackTrace();
+                    chatHandler.stillAlive = false;
+                }
+            }
+        }
+    }
+
+    protected static void broadcast(Message message)
+    {
+        synchronized (handlers) {
+            Enumeration<ChatHandler> enumeration = handlers.elements();
+            while (enumeration.hasMoreElements()) {
+                ChatHandler chatHandler = (ChatHandler) enumeration.nextElement();
+                try {
+                    synchronized (chatHandler.objectOutputStream) {
+                    	Calendar cal = Calendar.getInstance();
+                    	SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT_NOW);
+                    	message.setTimestamp(sdf.format(cal.getTime()));
+                    	message.setReceiverId(chatHandler.socket.hashCode());
+                    	System.out.println("Encrypted Message at server: "+message.toString());
+                    	chatHandler.objectOutputStream.writeObject(message);
+                    }
+                    chatHandler.objectOutputStream.flush();
+                } catch (IOException ioe) {
+                	ioe.printStackTrace();
+                    chatHandler.stillAlive = false;
+                }
             }
         }
     }
@@ -93,8 +143,8 @@ public class ChatHandler extends Thread
             }
         }
     }
-    
-    protected static void broadcast(Message message)
+
+    protected static void relayMessage(Message message)
     {
         synchronized (handlers) {
             Enumeration<ChatHandler> enumeration = handlers.elements();
@@ -116,5 +166,29 @@ public class ChatHandler extends Thread
             }
         }
     }
-    
+
+    protected static void relayMessage(String message)
+    {
+    	synchronized (handlers) {
+            Enumeration<ChatHandler> enumeration = handlers.elements();
+            while (enumeration.hasMoreElements()) {
+                ChatHandler chatHandler = (ChatHandler) enumeration.nextElement();
+                try {
+                    synchronized (chatHandler.dataOutputStream) {
+                    	Calendar cal = Calendar.getInstance();
+                    	SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT_NOW);
+                    	System.out.println("Encrypted Message at server: "+message);
+                    	String decryptedMessage = CryptoUtils.messageCryptography(message, "DECRYPT");
+                    	String encryptedMessage = CryptoUtils.messageCryptography(decryptedMessage+"\n"+sdf.format(cal.getTime()),"ENCRYPT");
+                        chatHandler.dataOutputStream.writeUTF(encryptedMessage);
+                    }
+                    chatHandler.dataOutputStream.flush();
+                } catch (IOException ioe) {
+                	ioe.printStackTrace();
+                    chatHandler.stillAlive = false;
+                }
+            }
+        }
+    }
+
 }

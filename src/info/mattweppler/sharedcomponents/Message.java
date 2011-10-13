@@ -9,24 +9,20 @@ public class Message implements Serializable
 {
 	private static final long serialVersionUID = 7299482643091594818L;
 	private int id;
-	private int senderId;
-	private int receiverId;
 	//private Object message;
 	private String message;
+	private int receiverId;
+	private String receiverName;
+	private int senderId;
+	private String senderName;
 	private String timestamp;
 	
 	public Message() {
 		
 	}
-	
+
 	public int getId() {
 		return id;
-	}
-	public int getSenderId() {
-		return senderId;
-	}
-	public int getReceiverId() {
-		return receiverId;
 	}
 	//public Object getMessage() {
 	//	return message;
@@ -34,17 +30,23 @@ public class Message implements Serializable
 	public String getMessage() {
 		return message;
 	}
+	public int getReceiverId() {
+		return receiverId;
+	}
+	public String getReceiverName() {
+		return receiverName;
+	}
+	public int getSenderId() {
+		return senderId;
+	}
+	public String getSenderName() {
+		return senderName;
+	}
 	public String getTimestamp() {
 		return timestamp;
 	}
 	public void setId(int id) {
 		this.id = id;
-	}
-	public void setSenderId(int senderId) {
-		this.senderId = senderId;
-	}
-	public void setReceiverId(int receiverId) {
-		this.receiverId = receiverId;
 	}
 	//public void setMessage(Object message) {
 	//	this.message = message;
@@ -52,17 +54,30 @@ public class Message implements Serializable
 	public void setMessage(String message) {
 		this.message = message;
 	}
+	public void setReceiverId(int receiverId) {
+		this.receiverId = receiverId;
+	}
+	public void setReceiverName(String receiverName) {
+		this.receiverName = receiverName;
+	}
+	public void setSenderId(int senderId) {
+		this.senderId = senderId;
+	}
+	public void setSenderName(String senderName) {
+		this.senderName = senderName;
+	}
 	public void setTimestamp(String timestamp) {
 		this.timestamp = timestamp;
 	}
-	
+
 	@Override
 	public String toString() {
-		return "Message [id=" + id + ", senderId=" + senderId + ", receiverId="
-				+ receiverId + ", timestamp=" + timestamp + ", message="
-				+ message + "]";
+		return "Message [id=" + id + ", message=" + message + ", receiverId="
+				+ receiverId + ", receiverName=" + receiverName + ", senderId="
+				+ senderId + ", senderName=" + senderName + ", timestamp="
+				+ timestamp + "]";
 	}
-	
+
 	public static byte[] getBytes(Object obj) throws IOException{
 		ByteArrayOutputStream bos = new ByteArrayOutputStream(); 
 		ObjectOutputStream oos = new ObjectOutputStream(bos); 
@@ -73,5 +88,5 @@ public class Message implements Serializable
 		byte[] data = bos.toByteArray();
 		return data;
 	}
-	
+
 }

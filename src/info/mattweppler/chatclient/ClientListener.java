@@ -3,7 +3,6 @@ package info.mattweppler.chatclient;
 import info.mattweppler.sharedcomponents.CryptoUtils;
 import info.mattweppler.sharedcomponents.Message;
 
-import java.awt.Color;
 import java.io.IOException;
 
 public class ClientListener implements Runnable
@@ -24,25 +23,12 @@ public class ClientListener implements Runnable
 		System.out.println(Thread.currentThread());
 		try {
 			while (client.stillAlive) {
-				String line = null;
-				
-				//Plain text message...
-				//line = CryptoUtils.messageCryptography(client.dataInputStream.readUTF(),"DECRYPT");
-				
-				messageObject = (Message) client.objectInputStream.readObject();
-				line = messageObject.toString();
-				
-		        // tried to distinguish local user text from remote user. 
-//				if (line.indexOf(client.username) != -1) { //Local User
-//					client.outputTextArea.setBackground(new Color(240, 248, 255));
-//				} else { //Remote User
-//					client.outputTextArea.setBackground(new Color(211, 211, 211));
-//				}
-				
-				//System.out.println("Timestamp is: "+line.substring(line.lastIndexOf("\n")+2));
-				client.outputTextArea.append(line + "\n");
-				// output textarea follows the content instead of just staying at the current line.
-				client.outputTextArea.setCaretPosition(client.outputTextArea.getText().length());
+				if (true) {
+					messageObject = (Message) client.objectInputStream.readObject();
+					client.receiveMessageObject(messageObject);
+				} else {
+					client.receiveMessage(CryptoUtils.messageCryptography(client.dataInputStream.readUTF(),"DECRYPT"));
+				}
 			}
 		} catch (IOException ioe) {
 			if (ioe.getMessage().equals("Connection reset")) {

@@ -29,19 +29,33 @@ import javax.swing.JTextArea;
 public class ChatClient implements KeyListener, WindowListener
 {
     private JFrame frame;
-    protected String username;
+    protected JTextArea outputTextArea;
+    protected JTextArea inputTextArea;
+
     protected DataInputStream dataInputStream;
     protected DataOutputStream dataOutputStream;
     protected ObjectInputStream objectInputStream;
     protected ObjectOutputStream objectOutputStream;
+
+    private MessageSender sender;
+    private MessageReceiver receiver;
+
     protected ClientListener listener;
     protected boolean stillAlive;
-    protected JTextArea outputTextArea;
-    protected JTextArea inputTextArea;   
-    
-    public ChatClient(String title, String username, InputStream inStream, OutputStream outStream)
+    protected String username;
+    protected int userId;
+
+    public ChatClient(String title, String username, Socket socket)
     {
-        this.username = username; //"-test";
+    	InputStream inStream = null;
+    	OutputStream outStream = null;
+    	try {
+    		inStream = socket.getInputStream();
+        	outStream = socket.getOutputStream();
+        } catch (IOException ioe) {
+        	ioe.printStackTrace();
+        }
+    	
         dataInputStream = new DataInputStream(new BufferedInputStream(inStream));
         dataOutputStream = new DataOutputStream(new BufferedOutputStream(outStream));
         try {
@@ -50,6 +64,35 @@ public class ChatClient implements KeyListener, WindowListener
         } catch (IOException ioe) {
         	ioe.printStackTrace();
         }
+        
+        sender = new MessageSender();
+    	sender.addEventListener(new MessageSenderListener() {
+			@Override
+			public void messageEventOccurred(MessageSenderEvent event) {
+	    		sendMessageObject();
+			}
+    	});
+    	
+        receiver = new MessageReceiver();
+        receiver.addEventListener(new MessageReceiverListener() {
+			@Override
+			public void messageEventOccurred(MessageReceiverEvent event) {
+				
+			}
+        });
+        
+        initialChatWindow(title);
+        
+        this.username = username;
+        this.userId = 1;
+        //Client Listener Thread
+        this.stillAlive = true;
+        listener = new ClientListener("ClientListener", this);
+        System.out.println("Created Thread:"+listener);
+    }
+    
+    public void initialChatWindow(String title)
+    {
         //TODO - Take the time to do a better user interface.
         frame = new JFrame(title);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -73,11 +116,6 @@ public class ChatClient implements KeyListener, WindowListener
         outputTextArea.setEditable(false);
         outputTextArea.setLineWrap(true);
         outputTextArea.setWrapStyleWord(true);
-        
-        //Client Listener Thread
-        this.stillAlive = true;
-        listener = new ClientListener("ClientListener", this);
-        System.out.println("Created Thread:"+listener);
     }
     
     public void clearInputArea() {
@@ -86,6 +124,38 @@ public class ChatClient implements KeyListener, WindowListener
         inputTextArea.getDocument().putProperty("filterNewlines", Boolean.TRUE);
         // output textarea follows the content instead of just staying at the current line.
         outputTextArea.setCaretPosition(outputTextArea.getText().length());
+    }
+
+    public void receiveMessage(String message) {		
+        // tried to distinguish local user text from remote user. 
+//		if (message.indexOf(client.username) != -1) { //Local User
+//			outputTextArea.setBackground(new Color(240, 248, 255));
+//		} else { //Remote User
+//			outputTextArea.setBackground(new Color(211, 211, 211));
+//		}
+		
+		//System.out.println("Timestamp is: "+message.substring(message.lastIndexOf("\n")+2));
+		outputTextArea.append(message + "\n");
+		// output textarea follows the content instead of just staying at the current line.
+		outputTextArea.setCaretPosition(outputTextArea.getText().length());
+    }
+    
+    public void receiveMessageObject(Message message) {
+		String line = null;
+		//line = message.toString();
+		line = message.getSenderName() + ": " + message.getMessage() + "\t\n-" + message.getTimestamp() + "\n";
+		
+        // tried to distinguish local user text from remote user. 
+//		if (line.indexOf(client.username) != -1) { //Local User
+//			client.outputTextArea.setBackground(new Color(240, 248, 255));
+//		} else { //Remote User
+//			client.outputTextArea.setBackground(new Color(211, 211, 211));
+//		}
+		
+		//System.out.println("Timestamp is: "+line.substring(line.lastIndexOf("\n")+2));
+		outputTextArea.append(line + "\n");
+		// output textarea follows the content instead of just staying at the current line.
+		outputTextArea.setCaretPosition(outputTextArea.getText().length());
     }
     
     public void sendMessage() {
@@ -103,10 +173,14 @@ public class ChatClient implements KeyListener, WindowListener
     }
     
     public void sendMessageObject() {
-        Message messageObject = new Message();
-        messageObject.setMessage(username+": "+(String)inputTextArea.getText());
+        Message message = new Message();
+        message.setId(1);
+        message.setReceiverName("user2");
+        message.setSenderId(this.userId);
+        message.setSenderName(username);
+        message.setMessage((String)inputTextArea.getText());
         try {
-			objectOutputStream.writeObject(messageObject);
+			objectOutputStream.writeObject(message);
 			objectOutputStream.flush();
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
@@ -114,7 +188,7 @@ public class ChatClient implements KeyListener, WindowListener
         	clearInputArea();
         }
     }
-    
+
 	@Override
 	public void keyPressed(KeyEvent e) {
 		if (e.getKeyCode() == KeyEvent.VK_ENTER && e.isAltDown()) {
@@ -124,7 +198,8 @@ public class ChatClient implements KeyListener, WindowListener
 		}
         if (e.getKeyCode() == KeyEvent.VK_ENTER) {
         	//sendMessage();
-        	sendMessageObject();
+        	//sendMessageObject();
+        	sender.fireEvent(null);
         }
 	}
 
@@ -167,12 +242,12 @@ public class ChatClient implements KeyListener, WindowListener
     		System.out.println("Syntax: ChatClient <host> <port> <username>");
     		System.out.println("...using default localhost 1137 anonymous");
     		Socket socket = new Socket("localhost", 1137);
-    	    new ChatClient("Chat localhost:1137", "username", socket.getInputStream(), socket.getOutputStream());
+    	    new ChatClient("Chat localhost:1137", "username", socket);
     	} else if (args.length != 3) {
 		    throw new RuntimeException("Syntax: ChatClient <host> <port> <username>");
     	} else {
 		    Socket socket = new Socket(args[0], Integer.parseInt(args[1]));
-		    new ChatClient("Chat " + args[0] + ":" + args[1], args[2], socket.getInputStream(), socket.getOutputStream());
+		    new ChatClient("Chat " + args[0] + ":" + args[1], args[2], socket);
     	}
     }
     
